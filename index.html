@@ -1,0 +1,428 @@
+<!doctype html>
+<html lang="ko"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>심심체인지 가입/해지 현황 (테스트)</title>
+<script id="saved-state" type="application/json">{"title":{"v":"심심체인지 가입/해지 현황","done":true},"sub":{"v":"- 202410 가입추세","done":true},"summary":{"v":"이건 가입 현황만 적은거 입니다.","done":false},"opinion":{"v":"의견은 이렇습니다.","done":false},"groups":["A"],"prods":["A-상품명 1","A-상품명 4"],"start":"","end":"","mode":"join","fileName":"261112_DB데이터_테스트자료_원본.csv","check":{"text":"1차 검증 통과 (확장자). 2차 검증 조건 미정의","cls":"ok"}}</script>
+<style>
+  :root{
+    --page:#ffffff;
+    --db:#f2f3f5;
+    --main:#e2e4e8;
+    --panel:#eceef1;
+    --card:#ffffff;
+    --line:#c3c7ce;
+    --text:#2b2f36;
+    --muted:#8d939c;
+    --group-text:#a3a8b0;
+    --dark:#4a4f57;
+    --dark-hover:#363a40;
+    --join:#2e5c9a;
+    --quit:#e08a58;
+    --err-bg:#fdecec; --err-line:#d9534f; --err-text:#a12622;
+    --ok-text:#2f6b3c;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--page);color:var(--text);
+    font-family:"Pretendard","Noto Sans KR","Malgun Gothic",sans-serif;font-size:14px;
+    -webkit-print-color-adjust:exact;print-color-adjust:exact}
+  /* 4. 화면 크기: 기본 1050px, 넓으면 늘어나고 좁으면 가로 스크롤 */
+  .wrap{min-width:1050px;padding:20px 24px}
+  .notice{border:1px dashed #b9a24a;background:#fbf6e2;color:#6f5c12;border-radius:6px;padding:6px 12px;margin-bottom:14px;font-size:12px}
+
+  button{font-family:inherit;cursor:pointer}
+  .pill{border-radius:999px}
+  .sq{border-radius:0}
+
+  /* 1. DB 입력 영역 */
+  .db{background:var(--db);border:1px solid var(--line);border-radius:12px;padding:16px 20px}
+  .db-row{display:flex;align-items:center;gap:12px}
+  .db-label{font-size:19px;font-weight:600;white-space:nowrap;min-width:100px}
+  .file-box{flex:1;min-width:0;height:44px;border:1px solid var(--line);background:var(--card);display:flex;align-items:center;
+    padding:0 20px;color:var(--muted);font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+  .file-box.has{color:var(--text)}
+  .folder{width:58px;height:44px;border:1px solid var(--line);background:var(--card);display:flex;align-items:center;justify-content:center}
+  .folder:hover{background:#f6f7f8}
+  .btn-run{height:44px;min-width:110px;border:0;background:var(--dark);color:#fff;font-size:18px;font-weight:600}
+  .btn-run:hover{background:var(--dark-hover)}
+  .btn-save{height:44px;min-width:110px;border:1.5px solid var(--dark);background:var(--card);color:var(--text);font-size:18px;font-weight:600}
+  .btn-save:hover{background:#f3f4f6}
+  .msg{display:none;margin-top:10px;padding:8px 14px;border:1px solid var(--err-line);background:var(--err-bg);color:var(--err-text);font-weight:600;border-radius:6px}
+  .msg.show{display:block}
+  .msg.info{border-color:var(--line);background:var(--card);color:var(--text);font-weight:500}
+
+  /* 2. 화면 영역 */
+  .main{margin-top:20px;background:var(--main);border:1px solid var(--line);border-radius:12px;padding:20px}
+  .head-row{display:flex;align-items:center;gap:10px}
+  .head-row + .head-row{margin-top:10px}
+  .head-row .field,.head-row .view{flex:1;min-width:0;border:1px solid var(--line);background:var(--card);padding:0 20px;font-family:inherit;color:var(--text)}
+  .head-row .view{background:transparent;border-color:transparent;display:none;align-items:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .t-title .field,.t-title .view{height:44px;font-size:24px;font-weight:700}
+  .t-sub .field,.t-sub .view{height:36px;font-size:15px}
+  .ed-btns{display:flex;gap:8px}
+  .btn-edit,.btn-ok{height:34px;min-width:100px;font-size:15px}
+  .btn-edit{border:1px solid var(--dark);background:var(--card);color:var(--text)}
+  .btn-ok{border:1px solid var(--dark);background:var(--dark);color:#fff}
+  .btn-ok:hover{background:var(--dark-hover)}
+  .btn-edit:disabled,.btn-ok:disabled{opacity:.35;cursor:default}
+  .editable.done .field{display:none}
+  .editable.done .view{display:flex}
+  hr.sep{border:0;border-top:1px solid #bfc4cb;margin:18px 0}
+
+  .sel-head{display:flex;justify-content:space-between;align-items:center;gap:12px}
+  .sel-title{font-size:18px;font-weight:600;white-space:nowrap}
+  .sel-title small{font-size:12px;color:var(--muted);font-weight:400;margin-left:8px}
+  .period{display:flex;align-items:center;gap:8px;white-space:nowrap}
+  .period label{font-weight:600}
+  .period input[type=text]{width:130px;height:34px;border:1px solid var(--line);background:var(--card);padding:0 10px;font-size:14px;font-family:inherit}
+  .period input[type=text].bad{border-color:var(--err-line);background:var(--err-bg)}
+  .cal{position:relative;width:36px;height:34px;border:1px solid var(--line);background:var(--card);display:flex;align-items:center;justify-content:center;cursor:pointer}
+  .cal input[type=date]{position:absolute;inset:0;opacity:0;pointer-events:none}
+  .period-msg{text-align:right;font-size:12px;color:var(--err-text);min-height:16px;margin-top:4px}
+
+  .tier{font-size:12px;color:var(--muted);margin:8px 0 6px}
+  .cards{display:flex;gap:16px;overflow-x:auto;padding-bottom:10px}
+  .cards::-webkit-scrollbar{height:9px}
+  .cards::-webkit-scrollbar-track{background:#d3d6db;border-radius:5px}
+  .cards::-webkit-scrollbar-thumb{background:#8e949c;border-radius:5px}
+  .card{flex:0 0 auto;display:flex;align-items:center;gap:10px;border:1px solid var(--line);background:var(--card);border-radius:8px;
+    padding:0 16px;height:54px;min-width:210px;font-size:17px;cursor:pointer;user-select:none}
+  .card.grp{color:var(--group-text)}
+  .card.prod{height:64px;min-width:190px}
+  .card.on{border:2px solid var(--dark);background:#f5f6f7}
+  .card input{width:20px;height:20px;margin:0;accent-color:var(--dark);cursor:pointer}
+  .empty{color:var(--muted);padding:16px 4px}
+
+  .row2{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:18px}
+  .panel{min-width:0;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:16px 22px}
+  .panel h2{margin:0;font-size:19px}
+  .chart-head{display:flex;justify-content:space-between;align-items:center}
+  .legend{display:flex;gap:16px;font-size:12px}
+  .legend i{display:inline-block;width:13px;height:13px;margin-right:5px;vertical-align:-2px}
+  .xscroll{overflow-x:auto;margin-top:14px}
+  .chart-inner{display:flex;height:270px;border-left:2px solid #8a9099;padding:0 16px;
+    background:linear-gradient(to top,#8a9099 0 2px,transparent 2px) bottom/100% 100% no-repeat}
+  .col{flex:1 1 0;display:flex;flex-direction:column;min-width:0}
+  .area{flex:1;display:flex;align-items:flex-end;justify-content:center;gap:4px;padding-bottom:2px;
+    background:repeating-linear-gradient(to top,transparent 0 57px,#cfd3d9 57px 58px)}
+  .bar{width:34%;max-width:48px;transition:height .2s}
+  .bar.join{background:var(--join)} .bar.quit{background:var(--quit)}
+  .bar.dummy{background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.28) 0 6px,transparent 6px 12px)}
+  .lbl{height:34px;padding-top:6px;text-align:center;font-size:12px;line-height:1.2;word-break:keep-all;overflow:hidden}
+  .chart-empty{flex:1;display:flex;align-items:center;justify-content:center;color:var(--muted)}
+  .radios{display:flex;justify-content:center;gap:36px;margin-top:12px;font-size:16px}
+  .radios label{display:flex;align-items:center;gap:7px;cursor:pointer}
+  .radios input{width:17px;height:17px;accent-color:var(--dark)}
+
+  .memo + .memo{margin-top:14px}
+  .memo .field,.memo .view{display:block;width:100%;min-height:100px;border:1px solid #a9afb8;background:var(--card);border-radius:6px;
+    padding:10px 14px;font-size:14px;font-family:inherit;color:var(--text);resize:vertical;white-space:pre-wrap;word-break:break-word;margin-top:6px}
+  .memo .view{display:none;background:transparent;border-style:dashed}
+  .memo.done .view{display:block}
+  .memo .ed-btns{justify-content:flex-end;margin-top:8px}
+
+  .bottom{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:18px}
+  .bottom .panel{display:flex;align-items:center;gap:14px;padding:10px 22px}
+  .bottom strong{font-size:16px;white-space:nowrap}
+  .out{flex:1;min-width:0;border:1px solid var(--line);background:var(--card);padding:6px 16px;color:var(--muted);min-height:32px}
+  .out.err{color:var(--err-text);border-color:var(--err-line);background:var(--err-bg)}
+  .out.ok{color:var(--ok-text)}
+
+  /* 7. 인쇄: A4 가로 1장, 배경 유지, 내용 잘림 방지 */
+  @page{size:A4 landscape;margin:8mm}
+  @media print{
+    .wrap{width:1050px;min-width:0;padding:0}
+  }
+  body.printing .cards{flex-wrap:wrap;overflow:visible}
+  body.printing .card{height:40px;min-width:0;font-size:14px}
+  body.printing .xscroll{overflow:visible}
+  body.printing .chart-inner{min-width:0 !important}
+  body.printing .lbl{font-size:10px}
+  body.printing .editable .field{display:none !important}
+  body.printing .editable .view{display:flex}
+  body.printing .memo .view{display:block;min-height:60px}
+  body.printing .memo .field{resize:none}
+</style>
+</head>
+<body>
+<div class="wrap" id="wrap">
+
+  <div class="notice">테스트 HTML입니다. 계산식·표준DB가 정의되지 않아 <b>산출(데이터 읽기)은 동작하지 않으며</b>, 그래프 막대는 버튼 동작 확인용 <b>더미(빗금)</b>로 실제 데이터가 아닙니다. 상품군·상품명은 화면구성.png의 예시 이름입니다.</div>
+
+  <!-- 1. DB 입력 영역 -->
+  <section class="db">
+    <div class="db-row">
+      <div class="db-label">DB 데이터</div>
+      <div class="file-box pill" id="fileBox">파일을 선택하세요 (.xlsx / .csv)</div>
+      <button type="button" class="folder pill" id="folderBtn" aria-label="불러오기" title="불러오기">
+        <svg width="32" height="26" viewBox="0 0 34 28"><path d="M1 4a3 3 0 0 1 3-3h8l3 4h15a3 3 0 0 1 3 3v16a3 3 0 0 1-3 3H4a3 3 0 0 1-3-3z" fill="#f4c04e" stroke="#d9a12a"></path><rect x="1" y="9" width="32" height="18" rx="2" fill="#f7cd62"></rect></svg>
+      </button>
+      <input type="file" id="fileInput" hidden="">
+      <button type="button" class="btn-run pill" id="runBtn">산출</button>
+      <button type="button" class="btn-save pill" id="saveBtn">저장</button>
+    </div>
+    <div class="msg" id="msg"></div>
+  </section>
+
+  <!-- 2. 화면 영역 -->
+  <section class="main">
+    <div class="head-row editable t-title" data-key="title">
+      <input class="field pill" type="text" placeholder="타이틀을 입력하세요">
+      <div class="view pill"></div>
+      <div class="ed-btns"><button type="button" class="btn-edit sq" disabled="">✎ 수정</button><button type="button" class="btn-ok sq">확인</button></div>
+    </div>
+    <div class="head-row editable t-sub" data-key="sub">
+      <input class="field pill" type="text" placeholder="부제목을 입력하세요">
+      <div class="view pill"></div>
+      <div class="ed-btns"><button type="button" class="btn-edit sq" disabled="">✎ 수정</button><button type="button" class="btn-ok sq">확인</button></div>
+    </div>
+
+    <hr class="sep">
+
+    <div class="sel-head">
+      <div class="sel-title">상품 선택<small>(중복 선택 가능)</small></div>
+      <div class="period">
+        <label for="startDate">시작일</label>
+        <input type="text" id="startDate" class="sq" placeholder="YYYYMMDD" maxlength="8" inputmode="numeric">
+        <span class="cal sq" data-target="startDate" title="달력"><svg width="18" height="18" viewBox="0 0 20 20"><rect x="1" y="3" width="18" height="16" fill="none" stroke="#4a4f57" stroke-width="1.6"></rect><rect x="1" y="3" width="18" height="4" fill="#4a4f57"></rect><g fill="#4a4f57"><rect x="4" y="9" width="3" height="2"></rect><rect x="8.5" y="9" width="3" height="2"></rect><rect x="13" y="9" width="3" height="2"></rect><rect x="4" y="13" width="3" height="2"></rect><rect x="8.5" y="13" width="3" height="2"></rect><rect x="13" y="13" width="3" height="2"></rect></g></svg><input type="date" tabindex="-1"></span>
+        <span>~</span>
+        <label for="endDate">종료일</label>
+        <input type="text" id="endDate" class="sq" placeholder="YYYYMMDD" maxlength="8" inputmode="numeric">
+        <span class="cal sq" data-target="endDate" title="달력"><svg width="18" height="18" viewBox="0 0 20 20"><rect x="1" y="3" width="18" height="16" fill="none" stroke="#4a4f57" stroke-width="1.6"></rect><rect x="1" y="3" width="18" height="4" fill="#4a4f57"></rect><g fill="#4a4f57"><rect x="4" y="9" width="3" height="2"></rect><rect x="8.5" y="9" width="3" height="2"></rect><rect x="13" y="9" width="3" height="2"></rect><rect x="4" y="13" width="3" height="2"></rect><rect x="8.5" y="13" width="3" height="2"></rect><rect x="13" y="13" width="3" height="2"></rect></g></svg><input type="date" tabindex="-1"></span>
+      </div>
+    </div>
+    <div class="period-msg" id="periodMsg"></div>
+
+    <div class="tier">상품군</div>
+    <div class="cards" id="groupCards"></div>
+    <div class="tier">상품</div>
+    <div class="cards" id="prodCards"></div>
+
+    <hr class="sep">
+
+    <div class="row2">
+      <div class="panel">
+        <div class="chart-head">
+          <h2>상품별 현황</h2>
+          <div class="legend"><span><i style="background:var(--join)"></i>가입자</span><span><i style="background:var(--quit)"></i>해지자</span></div>
+        </div>
+        <div class="xscroll"><div class="chart-inner" id="chart"></div></div>
+        <div class="radios">
+          <label><input type="radio" name="mode" value="all" checked="">전부</label>
+          <label><input type="radio" name="mode" value="join">가입자</label>
+          <label><input type="radio" name="mode" value="quit">해지자</label>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="memo editable" data-key="summary">
+          <h2>SUMMARY</h2>
+          <textarea class="field" placeholder="내용을 입력하세요"></textarea>
+          <div class="view"></div>
+          <div class="ed-btns"><button type="button" class="btn-edit sq" disabled="">✎ 수정</button><button type="button" class="btn-ok sq">확인</button></div>
+        </div>
+        <div class="memo editable" data-key="opinion">
+          <h2 style="font-size:16px">의견</h2>
+          <textarea class="field" placeholder="의견을 입력하세요"></textarea>
+          <div class="view"></div>
+          <div class="ed-btns"><button type="button" class="btn-edit sq" disabled="">✎ 수정</button><button type="button" class="btn-ok sq">확인</button></div>
+        </div>
+      </div>
+    </div>
+
+    <hr class="sep">
+
+    <!-- 3. 하단 영역 -->
+    <div class="bottom">
+      <div class="panel"><strong>AI Comment</strong><div class="out pill" id="aiOut">선택한 상품·기간의 산출 수치가 한 줄로 표시됩니다.</div></div>
+      <div class="panel"><strong>데이터 오류성 판단 결과</strong><div class="out pill" id="chkOut">오류 · 확인 · 경고 결과 표시</div></div>
+    </div>
+  </section>
+</div>
+
+<script>
+(function(){
+  // 저장용 원본 틀: 화면을 그리기 전의 HTML을 보관한다.
+  var TEMPLATE = '<!doctype html>\n' + document.documentElement.outerHTML;
+
+  // 예시 상품군/상품 (화면구성.png의 예시 이름. 제작자 정의 전 임시)
+  var GROUPS = ['A','B','C','D'], PER_GROUP = 8;
+
+  var state = {
+    title:{v:'',done:false}, sub:{v:'',done:false},
+    summary:{v:'',done:false}, opinion:{v:'',done:false},
+    groups:['A'], prods:['A-상품명 1','A-상품명 2','A-상품명 3','A-상품명 4'],
+    start:'', end:'', mode:'all', fileName:'', check:null
+  };
+  try{
+    var saved = JSON.parse(document.getElementById('saved-state').textContent);
+    if(saved) state = saved;
+  }catch(e){}
+
+  var $ = function(id){ return document.getElementById(id); };
+
+  // ---- 상품군 / 상품 카드 ----
+  function card(label, on, cls, onChange){
+    var l = document.createElement('label');
+    l.className = 'card ' + cls + (on ? ' on' : '');
+    var c = document.createElement('input'); c.type='checkbox'; c.checked = on;
+    c.addEventListener('change', function(){ l.classList.toggle('on', c.checked); onChange(c.checked); });
+    l.appendChild(c); l.appendChild(document.createTextNode(label));
+    return l;
+  }
+  function toggle(arr, v, on){ var i = arr.indexOf(v); if(on && i<0) arr.push(v); if(!on && i>=0) arr.splice(i,1); }
+  function renderGroups(){
+    var w = $('groupCards'); w.innerHTML='';
+    GROUPS.forEach(function(g){
+      w.appendChild(card('상품군 '+g, state.groups.indexOf(g)>=0, 'grp', function(on){ toggle(state.groups,g,on); renderProds(); }));
+    });
+  }
+  function visibleProds(){
+    var list=[];
+    GROUPS.forEach(function(g){ if(state.groups.indexOf(g)<0) return; for(var i=1;i<=PER_GROUP;i++) list.push(g+'-상품명 '+i); });
+    return list;
+  }
+  function renderProds(){
+    var w = $('prodCards'); w.innerHTML='';
+    var list = visibleProds();
+    list.forEach(function(n){
+      w.appendChild(card(n, state.prods.indexOf(n)>=0, 'prod', function(on){ toggle(state.prods,n,on); renderChart(); }));
+    });
+    if(!list.length){ var e=document.createElement('div'); e.className='empty'; e.textContent='상품군을 선택하세요.'; w.appendChild(e); }
+    renderChart();
+  }
+  ['groupCards','prodCards'].forEach(function(id){
+    var el = $(id);
+    el.addEventListener('wheel', function(ev){
+      if(el.scrollWidth>el.clientWidth && Math.abs(ev.deltaY)>Math.abs(ev.deltaX)){ el.scrollLeft += ev.deltaY; ev.preventDefault(); }
+    }, {passive:false});
+  });
+
+  // ---- 그래프 (더미 막대: 버튼 동작 확인용, 데이터 아님) ----
+  function renderChart(){
+    var ch = $('chart'); ch.innerHTML='';
+    var vis = visibleProds();
+    var names = vis.filter(function(n){ return state.prods.indexOf(n)>=0; });
+    ch.style.minWidth = (names.length*90+32)+'px';
+    if(!names.length){ ch.style.minWidth=''; var e=document.createElement('div'); e.className='chart-empty'; e.textContent='상품 카드를 선택하세요.'; ch.appendChild(e); return; }
+    names.forEach(function(n){
+      var col=document.createElement('div'); col.className='col';
+      var area=document.createElement('div'); area.className='area';
+      if(state.mode!=='quit'){ var b=document.createElement('div'); b.className='bar join dummy'; b.style.height='70%'; area.appendChild(b); }
+      if(state.mode!=='join'){ var q=document.createElement('div'); q.className='bar quit dummy'; q.style.height='40%'; area.appendChild(q); }
+      var lb=document.createElement('div'); lb.className='lbl'; lb.textContent=n;
+      col.appendChild(area); col.appendChild(lb); ch.appendChild(col);
+    });
+  }
+  document.querySelectorAll('input[name=mode]').forEach(function(r){
+    r.checked = (r.value===state.mode);
+    r.addEventListener('change', function(){ state.mode=r.value; renderChart(); });
+  });
+
+  // ---- 수정 / 확인 (타이틀, 부제목, SUMMARY, 의견) ----
+  document.querySelectorAll('.editable').forEach(function(el){
+    var k = el.dataset.key, f = el.querySelector('.field'), v = el.querySelector('.view');
+    var bE = el.querySelector('.btn-edit'), bO = el.querySelector('.btn-ok');
+    function apply(){
+      f.value = state[k].v; v.textContent = state[k].v;
+      el.classList.toggle('done', state[k].done); bO.disabled = state[k].done; bE.disabled = !state[k].done;
+    }
+    f.addEventListener('input', function(){ state[k].v = f.value; });
+    bO.addEventListener('click', function(){ state[k].v=f.value; state[k].done=true; apply(); });
+    bE.addEventListener('click', function(){ state[k].done=false; apply(); f.focus(); });
+    apply();
+  });
+
+  // ---- 기간 (숫자 8자리 + 달력) ----
+  function valid(v){
+    if(!/^\d{8}$/.test(v)) return false;
+    var y=+v.slice(0,4), m=+v.slice(4,6)-1, d=+v.slice(6), t=new Date(y,m,d);
+    return t.getFullYear()===y && t.getMonth()===m && t.getDate()===d;
+  }
+  function checkPeriod(){
+    var s=$('startDate'), e=$('endDate'), msgs=[];
+    [[s,'시작일'],[e,'종료일']].forEach(function(p){
+      var bad = p[0].value.length>0 && !valid(p[0].value);
+      p[0].classList.toggle('bad', bad); if(bad) msgs.push(p[1]+' 형식 확인 (YYYYMMDD)');
+    });
+    if(valid(s.value) && valid(e.value) && s.value>e.value) msgs.push('시작일이 종료일보다 늦습니다');
+    $('periodMsg').textContent = msgs.join(' · ');
+    state.start = s.value; state.end = e.value;
+  }
+  $('startDate').value = state.start; $('endDate').value = state.end;
+  ['startDate','endDate'].forEach(function(id){
+    var el=$(id); el.addEventListener('input', function(){ el.value = el.value.replace(/\D/g,'').slice(0,8); checkPeriod(); });
+  });
+  document.querySelectorAll('.cal').forEach(function(c){
+    var p=c.querySelector('input[type=date]'), t=$(c.dataset.target);
+    c.addEventListener('click', function(){
+      p.value = /^\d{8}$/.test(t.value) ? t.value.slice(0,4)+'-'+t.value.slice(4,6)+'-'+t.value.slice(6) : '';
+      if(p.showPicker){ try{ p.showPicker(); return; }catch(e){} }
+      p.focus(); p.click();
+    });
+    p.addEventListener('change', function(){ t.value = p.value.replace(/-/g,''); checkPeriod(); });
+  });
+  checkPeriod();
+
+  // ---- 파일 불러오기 + 1차 검증 ----
+  var fileInput=$('fileInput'), msg=$('msg'), chk=$('chkOut');
+  function showMsg(t, info){ msg.textContent=t; msg.className='msg show'+(info?' info':''); }
+  function applyFile(){
+    if(state.fileName){ $('fileBox').textContent=state.fileName; $('fileBox').classList.add('has'); }
+    if(state.check){ chk.textContent=state.check.text; chk.className='out pill '+state.check.cls; }
+  }
+  function pick(){ fileInput.value=''; fileInput.click(); }
+  $('folderBtn').addEventListener('click', pick);
+  $('fileBox').addEventListener('click', pick);
+  fileInput.addEventListener('change', function(){
+    var f=fileInput.files[0]; if(!f) return;
+    state.fileName = f.name;
+    if(/\.(xlsx|csv)$/i.test(f.name)){
+      msg.className='msg';
+      state.check = {text:'1차 검증 통과 (확장자). 2차 검증 조건 미정의', cls:'ok'};
+    } else {
+      showMsg('xlsx 또는 csv 파일만 사용할 수 있습니다');
+      state.check = {text:'오류: xlsx 또는 csv 파일만 사용할 수 있습니다', cls:'err'};
+    }
+    applyFile();
+  });
+  $('runBtn').addEventListener('click', function(){
+    if(!state.fileName){ showMsg('DB 파일을 먼저 불러오세요.', true); return; }
+    if(state.check && state.check.cls==='err'){ showMsg('xlsx 또는 csv 파일만 사용할 수 있습니다'); return; }
+    showMsg('테스트 HTML입니다. 계산식·표준DB가 정의되지 않아 산출은 진행하지 않습니다.', true);
+  });
+  applyFile();
+
+  // ---- 저장: 현재 화면 상태를 담은 새 HTML 다운로드 ----
+  function buildSaved(){
+    var json = JSON.stringify(state).replace(/</g,'\\u003c');
+    return TEMPLATE.replace(/(<script id="saved-state" type="application\/json">)[\s\S]*?(<\/script>)/, function(_,a,b){ return a+json+b; });
+  }
+  window.__buildSaved = buildSaved; // 테스트 확인용
+  $('saveBtn').addEventListener('click', function(){
+    var d=new Date(), p=function(n){return (n<10?'0':'')+n;};
+    var name='심심체인지_저장_'+d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+'_'+p(d.getHours())+p(d.getMinutes())+'.html';
+    var url=URL.createObjectURL(new Blob([buildSaved()],{type:'text/html'}));
+    var a=document.createElement('a'); a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+  });
+
+  // ---- 인쇄: A4 가로 1장에 맞춤 ----
+  var wrap=$('wrap');
+  window.addEventListener('beforeprint', function(){
+    document.querySelectorAll('.editable').forEach(function(el){ el.querySelector('.view').textContent = state[el.dataset.key].v; });
+    document.body.classList.add('printing');
+    wrap.style.zoom=''; wrap.style.width='1050px'; wrap.style.minWidth='0'; wrap.style.padding='0';
+    var w=wrap.scrollWidth, h=wrap.scrollHeight;
+    // A4 가로 297x210mm, 여백 8mm → 약 1062 x 733 px
+    wrap.style.zoom = Math.min(1, 1062/w, 733/h);
+  });
+  window.addEventListener('afterprint', function(){
+    document.body.classList.remove('printing');
+    wrap.style.zoom=''; wrap.style.width=''; wrap.style.minWidth=''; wrap.style.padding='';
+    document.querySelectorAll('.editable').forEach(function(el){ el.querySelector('.view').textContent = state[el.dataset.key].v; });
+  });
+
+  renderGroups();
+  renderProds();
+})();
+</script></body></html>
